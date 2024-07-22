@@ -135,6 +135,45 @@ void drawShipBoard() // Portador de la nave
 	glEnd();
 }
 
+// pregunta a OpenGL por el valor de una variable de estado
+int integerv(GLenum pname){
+	int value;
+	glGetIntegerv(pname,&value);
+	return value;
+}
+# define _PRINT_INT_VALUE(pname) #pname << ": " << integerv(pname) <<endl
+	
+void info()
+{
+	if(commandLineinfo){
+	cout << "Vendor:         " << glGetString(GL_VENDOR) << endl
+	<< "Renderer:       " << glGetString(GL_RENDERER) << endl
+	<< "GL_Version:     " << glGetString(GL_VERSION) << endl
+	<< "GL_Extensions:  " << glGetString(GL_EXTENSIONS) << endl
+	<< "GLU_Version:    " << gluGetString(GLU_VERSION) << endl
+	<< "GLU_Extensions: " << gluGetString(GLU_EXTENSIONS) << endl
+	<< _PRINT_INT_VALUE(GL_DOUBLEBUFFER)
+	<< _PRINT_INT_VALUE(GL_STEREO)
+	<< _PRINT_INT_VALUE(GL_AUX_BUFFERS)
+	<< _PRINT_INT_VALUE(GL_RED_BITS)
+	<< _PRINT_INT_VALUE(GL_GREEN_BITS)
+	<< _PRINT_INT_VALUE(GL_BLUE_BITS)
+	<< _PRINT_INT_VALUE(GL_ALPHA_BITS)
+	<< _PRINT_INT_VALUE(GL_DEPTH_BITS)
+	<< _PRINT_INT_VALUE(GL_STENCIL_BITS)
+	<< _PRINT_INT_VALUE(GL_ACCUM_RED_BITS)
+	<< _PRINT_INT_VALUE(GL_ACCUM_GREEN_BITS)
+	<< _PRINT_INT_VALUE(GL_ACCUM_BLUE_BITS)
+	<< _PRINT_INT_VALUE(GL_ACCUM_ALPHA_BITS)<< endl;
+	}
+	
+	cout << "Teclas a utilizar:" << endl;
+	cout << "w: avanza" << endl;
+	cout << "s: retrocede" << endl;
+	cout << "d: gira en sentido horario" << endl;
+	cout << "a: gira en sentido antihorario" << endl;
+}
+
 void checkErrors()
 {
 	int error = glGetError();
@@ -186,8 +225,6 @@ void display_cb()
 	drawText(st1, 20, 550, 30.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0, 1.0);
 	
 	glutSwapBuffers();
-	
-	checkErrors();
 }
 
 void idle_cb() 
@@ -239,14 +276,13 @@ void idle_cb()
 	if (myMilliseconds%1000 == 0) // Verifica si el tiempo total es un múltiplo de 1000 (es decir, cada segundo)
 	{
 		mySeconds = myMilliseconds / 1000; // Calcula el número de segundos transcurridos dividiendo los milisegundos entre 1000
-		if (mySeconds == 30) // Si pasaron 30 segundos finaliza el programa
+		if (mySeconds >= 30) // Si pasaron 30 segundos finaliza el programa
 		{
 			display_cb();
 			cout << "Termino el tiempo!" << endl;
 			cout << "Pasaron " << mySeconds << " segundos!" <<endl;
 			exit(EXIT_SUCCESS);
 		}
-		glutPostRedisplay();
 	}
 }
 
@@ -256,17 +292,13 @@ void initialize()
 	glutInitWindowSize(800,600);
 	glutInitWindowPosition (500,50);
 	glutCreateWindow("TRANSFORMACIONES EN OPENGL");
+	info();
+	checkErrors();
 	glutDisplayFunc(display_cb);
 	glutReshapeFunc(reshape_cb);
 	glutIdleFunc(idle_cb);
 	keyboard.InitKeyboard();
 	glClearColor(0.f,0.f,0.f,0.f);
-	
-	cout << "Teclas a utilizar:" << endl;
-	cout << "w: avanza" << endl;
-	cout << "s: retrocede" << endl;
-	cout << "d: gira en sentido horario" << endl;
-	cout << "a: gira en sentido antihorario" << endl;
 }
 
 int main (int argc, char **argv)
