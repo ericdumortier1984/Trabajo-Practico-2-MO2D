@@ -17,6 +17,8 @@ double
 	shipY = 300, // Posición en y
     shipAngle = 0; // Orientación
 int 
+	w = 800,
+	h = 600,
 	// Para no salirse de pantalla
 	xMax = 800, // Máximo pantalla en x
 	xmin = 0, // Mínimo pantalla en x
@@ -25,17 +27,24 @@ int
 	
 	mySeconds, // Segundos transcurridos desde que comenzó el programa
 	myMilliseconds;
+static int AngLineaRadar=0; // angulo de rotacion de linea del radar
+const double
+	zBodyShip = 0.3,
+	zCabin = 0.6,
+	zLeftWing = 0.5,
+	zRightWing = 0.5,
+	zRadar = 0.9;
 
 Keyboard keyboard('p', 'w', 's', 'a', 'd', 'q', 'r');
 
 //----------------------------------------------------
 
 // Renderiza texto en pantalla usando UglyFont
-void drawText(string _string, float x, float y, float textScale = 1.0, float red = 1.0, float green = 1.0, float blue = 1.0, float transparent = 1.0, float textAngle = 0.0, int textCenter = 0, float textWidth = 1.0 )
+void drawText(string _string, float x, float y, float textScale = 1.0, float red = 1.0, float green = 1.0, float blue = 1.0, float alpha = 1.0, float textAngle = 0.0, int textCenter = 0, float textWidth = 1.0 )
 {
 	glPushAttrib(GL_ALL_ATTRIB_BITS); 
 	glLineWidth(textWidth); // Ancho de linea del caracter
-	glColor4f(red, green, blue, transparent); // Color del caracter
+	glColor4f(red, green, blue, alpha); // Color del caracter
 	glPushMatrix();
 	glTranslated(x, y, 0); // Posicion del caracter
 	glRotatef(textAngle, 0, 0, 1); // Angulo del caracter
@@ -100,24 +109,24 @@ void drawBodyShip() // Cuerpo de la nave
 void drawShip() // Modelo completo de la nave
 {
 	glPushMatrix(); // Inicio push inicial
-	glTranslated(shipX, shipY, 0); // Translado el cuerpo de la nave en el modelo
+	glTranslated(shipX, shipY, zBodyShip); // Translado el cuerpo de la nave en el modelo
 	glRotated(shipAngle, 0, 0, 1); // Rotación de el cuerpo de la nave en el modelo
 	drawBodyShip();
 	
 	glPushMatrix();
-	glTranslated(-20, -20, 0); // Translado ala izquierda de la nave en el modelo
+	glTranslated(-20, -20, zLeftWing); // Translado ala izquierda de la nave en el modelo
 	glRotated(50, 0, 0, 1); // Rotación de ala izquierda de la nave en el modelo
 	drawLeftWing();
 	glPopMatrix();
 	
 	glPushMatrix();
-	glTranslated(20, -20, 0); // Translado ala derecha de la nave en el modelo
+	glTranslated(20, -20, zRightWing); // Translado ala derecha de la nave en el modelo
 	glRotated(-50, 0, 0, 1); // Rotación de ala derecha de la nave en el modelo
 	drawRightWing();
 	glPopMatrix();
 	
 	glPushMatrix();
-	glTranslated(0, 15, 0); // Translado de la cabina de la nave
+	glTranslated(0, 15, zCabin); // Translado de la cabina de la nave
 	drawShipCabin();
 	glPopMatrix();
 	
@@ -133,6 +142,42 @@ void drawShipBoard() // Portador de la nave
 	glVertex2i(450, 350); glVertex2i(450, 250);
 	glVertex2i(350, 250); glVertex2i(450, 250);
 	glEnd();
+}
+
+void drawRadar() 
+{
+	//Las siguientes dos traslaciones se pueden combinar en una sola linea (ademas la primera no hace nada)
+	//pero para que se entienda la idea de usar z para definir el orden de dibujado dejamos las dos lineas
+	glPushMatrix();
+	glTranslated(0,0,zRadar);
+	
+	glPushMatrix();
+	glTranslatef (700, 500, 0.0);
+	glColor4f(0.3f,0.3f,0.3f,1.0f);//glColor3f(0.8,0.5,0.1);//(0.0,0.0,0.0);
+	glPointSize(1);
+	GLUquadricObj *q=gluNewQuadric();
+	gluQuadricDrawStyle(q,GLU_FILL);//GLU_POINT//GLU_FILL
+	gluDisk(q,85,90,30,30);//gluDisk(q,0,baseRadius,slices,stacks);  
+	
+	glColor4f(0,0,1,1.0f);
+	gluQuadricDrawStyle(q,GLU_FILL);//GLU_POINT//GLU_FILL
+	gluDisk(q,0,90,30,30);//gluDisk(q,0,baseRadius,slices,stacks);  
+	gluDeleteQuadric(q);
+	
+	glPopMatrix();
+	
+	//linea
+	glPushMatrix();
+	glTranslatef (700, 500, 0.0);
+	glRotatef (AngLineaRadar, 0.0, 0.0, -1.0);
+	glColor3f(1.0f,0.0f,0.0f);//glColor3ub(1,245,0);
+	glLineWidth(3);//glLineWidth(1.0);
+	glBegin(GL_LINES);
+	glVertex2i(0,0); glVertex2i(85,0);//glVertex2f(0.f,0.f); glVertex2f(0.f,50.f);
+	glEnd();
+	glPopMatrix();
+	
+	glPopMatrix();
 }
 
 // pregunta a OpenGL por el valor de una variable de estado
@@ -206,15 +251,18 @@ void reshape_cb (int w, int h)
 	glViewport(0,0,w,h);
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();
-	glOrtho(0, w, 0, h, -1, 1);
+	glOrtho(0, w, 0, h, 1, 3);
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();
+	gluLookAt(0,0,2, 0,0,0, 0,1,0);// ubica la camara
+	glutPostRedisplay();
 }
 
 void display_cb() 
 {
 	glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
 	drawShip();
+	drawRadar();
 	drawShipBoard();
 	
 	// muestra la cantidad de segundos transcurridos
@@ -222,7 +270,7 @@ void display_cb()
 	char st2[10] = "";
 	sprintf(st2, "%d", mySeconds); // Corrijo el uso de sprintf
 	strcat(st1, st2); // Concatenar el número de segundos 
-	drawText(st1, 20, 550, 30.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0, 1.0);
+	drawText(st1, 20, 550, 15.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0, 1.0);
 	
 	glutSwapBuffers();
 }
@@ -298,6 +346,8 @@ void initialize()
 	glutReshapeFunc(reshape_cb);
 	glutIdleFunc(idle_cb);
 	keyboard.InitKeyboard();
+	glEnable(GL_DEPTH_TEST); // Activa Depth Test
+	glDepthFunc( GL_LEQUAL ); //Función de comparación de z
 	glClearColor(0.f,0.f,0.f,0.f);
 }
 
