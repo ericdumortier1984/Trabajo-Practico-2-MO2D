@@ -3,6 +3,7 @@
 # include <GL/glut.h>
 # include <iostream>
 # include <cmath>
+# include <list>
 
 # include "uglyfont.h"
 # include "keyboard.h"
@@ -10,12 +11,19 @@
 using namespace std;
 
 //------VARIABLES GLOBALES---------
-const double PI = 4*atan(1.0); // Es una forma de calcular el valor de PI en código
-bool commandLineinfo = true; // Informa errores por línea de comando
 double 
 	shipX = 400, // Posición en x
 	shipY = 300, // Posición en y
     shipAngle = 0; // Orientación
+const double PI = 4*atan(1.0); // Es una forma de calcular el valor de PI en código
+const double
+	zBullet = 0.6,
+	zBodyShip = 0.3,
+	zCabin = 0.6,
+	zLeftWing = 0.5,
+	zRightWing = 0.5,
+	zRadar = 0.9;
+static int AngLineRadar = 0; // angulo de rotacion de linea del radar
 int 
 	w = 800,
 	h = 600,
@@ -27,17 +35,34 @@ int
 	
 	mySeconds, // Segundos transcurridos desde que comenzó el programa
 	myMilliseconds;
-static int AngLineaRadar=0; // angulo de rotacion de linea del radar
-const double
-	zBodyShip = 0.3,
-	zCabin = 0.6,
-	zLeftWing = 0.5,
-	zRightWing = 0.5,
-	zRadar = 0.9;
-
+bool commandLineinfo = true; // Informa errores por línea de comando
 Keyboard keyboard('p', 'w', 's', 'a', 'd', 'q', 'r');
 
 //----------------------------------------------------
+
+class Bullet 
+{
+private:
+	double x;
+	double y;
+	double incrementox;
+	double incrementoy;
+public:
+	Bullet(double posX, double posY, double incX, double incY) : x(posX), y(posY), incrementox(incX), incrementoy(incY) {}
+	bool Update() 
+	{
+		x+=incrementox;
+		y+=incrementoy;
+		//Si esta fuera de la pantalla, elimino la bala
+		return ( x > w || x < 0 || y > h || y < 0 );
+	}
+	void Draw() {
+		glVertex2d(x,y);
+	}
+};
+
+list<Bullet> bullet;
+
 
 // Renderiza texto en pantalla usando UglyFont
 void drawText(string _string, float x, float y, float textScale = 1.0, float red = 1.0, float green = 1.0, float blue = 1.0, float alpha = 1.0, float textAngle = 0.0, int textCenter = 0, float textWidth = 1.0 )
@@ -146,36 +171,48 @@ void drawShipBoard() // Portador de la nave
 
 void drawRadar() 
 {
-	//Las siguientes dos traslaciones se pueden combinar en una sola linea (ademas la primera no hace nada)
-	//pero para que se entienda la idea de usar z para definir el orden de dibujado dejamos las dos lineas
 	glPushMatrix();
-	glTranslated(0,0,zRadar);
 	
+	//Radar
 	glPushMatrix();
-	glTranslatef (700, 500, 0.0);
-	glColor4f(0.3f,0.3f,0.3f,1.0f);//glColor3f(0.8,0.5,0.1);//(0.0,0.0,0.0);
-	glPointSize(1);
-	GLUquadricObj *q=gluNewQuadric();
-	gluQuadricDrawStyle(q,GLU_FILL);//GLU_POINT//GLU_FILL
-	gluDisk(q,85,90,30,30);//gluDisk(q,0,baseRadius,slices,stacks);  
-	
-	glColor4f(0,0,1,1.0f);
-	gluQuadricDrawStyle(q,GLU_FILL);//GLU_POINT//GLU_FILL
-	gluDisk(q,0,90,30,30);//gluDisk(q,0,baseRadius,slices,stacks);  
+	glColor4f(0.3f, 0.5f, 0.3f, 1.0f);
+	glTranslatef (700, 500, zRadar);
+	GLUquadricObj* q = gluNewQuadric();
+	gluQuadricDrawStyle(q,GLU_FILL);
+	gluDisk(q,0,90,30,30);
 	gluDeleteQuadric(q);
 	
 	glPopMatrix();
 	
-	//linea
+	//Linea
 	glPushMatrix();
-	glTranslatef (700, 500, 0.0);
-	glRotatef (AngLineaRadar, 0.0, 0.0, -1.0);
-	glColor3f(1.0f,0.0f,0.0f);//glColor3ub(1,245,0);
-	glLineWidth(3);//glLineWidth(1.0);
+	glColor3f(1.0f,0.0f,0.0f);
+	glTranslatef (700, 500, 0.9);
+	glRotatef (AngLineRadar, 0.0, 0.0, -1.0);
+	glLineWidth(3);
 	glBegin(GL_LINES);
-	glVertex2i(0,0); glVertex2i(85,0);//glVertex2f(0.f,0.f); glVertex2f(0.f,50.f);
+	glVertex2i(0,0); glVertex2i(85,0);
 	glEnd();
 	glPopMatrix();
+	
+	glPopMatrix();
+}
+
+void DrawBullet() 
+{
+	glPushMatrix();
+	glTranslated(0,0,zBullet);
+	
+	list<Bullet>::iterator b = bullet.begin();
+	glPointSize(3);
+	glColor3f(1.0, 1.0, 1.0);
+	glBegin(GL_POINTS);
+	while( b != bullet.end() ) 
+	{
+		b->Draw();
+		b++;
+	}
+	glEnd();
 	
 	glPopMatrix();
 }
@@ -254,7 +291,7 @@ void reshape_cb (int w, int h)
 	glOrtho(0, w, 0, h, 1, 3);
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();
-	gluLookAt(0,0,2, 0,0,0, 0,1,0);// ubica la camara
+	gluLookAt(0,0,2, 0,0,0, 0,1,0);// Ubica la camara
 	glutPostRedisplay();
 }
 
@@ -264,6 +301,7 @@ void display_cb()
 	drawShip();
 	drawRadar();
 	drawShipBoard();
+	DrawBullet();
 	
 	// muestra la cantidad de segundos transcurridos
     char st1[30] = "Segundos Transcurridos: ";
@@ -278,10 +316,26 @@ void display_cb()
 void idle_cb() 
 {
     double angle = shipAngle*PI/180.0; // Convierte shipAngle de grados a radianes
-    static unsigned int lapsedTime = 0; // Tiempo transcurrido
-    if(glutGet(GLUT_ELAPSED_TIME) - lapsedTime > 60) 
-    {
-    // Primero miramos el estado del teclado y realizamos los cambios en la direccion y la velocidad de la nav
+	double ang2;
+	static unsigned int lt=0;
+	int dt = glutGet(GLUT_ELAPSED_TIME) - lt;
+	if(dt > 60) 
+	{
+		lt = glutGet(GLUT_ELAPSED_TIME);
+		
+		AngLineRadar=(AngLineRadar + 2) % 360; // Línea del radar gira 360°
+		
+		//Actualizamos las posiciones de las balas
+		list<Bullet>::iterator b = bullet.begin();
+		while( b != bullet.end() ) //Si esta fuera del mapa eliminamos la bala
+		{
+			if( b->Update() )
+				b = bullet.erase(b);
+			else
+				b++;
+		}
+		
+    // Teclado
     if(keyboard.Fordward()) // Adelante
     {
     shipX -= 5*sin(angle);
@@ -300,27 +354,23 @@ void idle_cb()
     {
     shipAngle -= 0.8;
     }
-
+	if(keyboard.Shoot()) // Dispara
+	{
+		ang2=(angle)*PI/180.0;
+		bullet.push_back( Bullet( (shipX), (shipY), -30*sin(ang2), 30*cos(ang2)) );//la bala sale desde la base del arma
+	}
+	
     // controlamos que no salga de la pantalla
     if(shipX < xmin) shipX = 0;
     if(shipX > xMax) shipX = 800;
     if(shipY < yMin) shipY = 0;
     if(shipY > yMax) shipY = 600;
-
-    lapsedTime = glutGet(GLUT_ELAPSED_TIME);
     }
     glutPostRedisplay();
 
-	int dt = glutGet(GLUT_ELAPSED_TIME) - lapsedTime; // Iniciamos deltaTime
-	myMilliseconds = glutGet(GLUT_ELAPSED_TIME); // GLUT_ELAPSED_TIME devuelve el numero de milisegundos desde que se llamo a glutInit
-	if(dt > 60) // Comprueba si han pasado más de 60 milisegundos desde la última actualización
-	{
-		lapsedTime = glutGet(GLUT_ELAPSED_TIME); // Actualiza lapsedTime al tiempo actual para la próxima comparación
-		display_cb();
-	}
-	
 	/*ACLARACIÓN: Al verificar si myMilliseconds es un múltiplo de 1000, evito ejecutar la lógica de temporización en cada ciclo de renderizado. 
 	Esto puede ayudar a reducir la carga de procesamiento, ya que solo se ejecuta una vez por segundo.*/
+	myMilliseconds = glutGet(GLUT_ELAPSED_TIME); // GLUT_ELAPSED_TIME devuelve el numero de milisegundos desde que se llamo a glutInit
 	if (myMilliseconds%1000 == 0) // Verifica si el tiempo total es un múltiplo de 1000 (es decir, cada segundo)
 	{
 		mySeconds = myMilliseconds / 1000; // Calcula el número de segundos transcurridos dividiendo los milisegundos entre 1000
