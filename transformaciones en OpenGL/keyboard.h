@@ -26,5 +26,6 @@ public:
 	bool Back();
 	bool Left();
 	bool Right();
+	bool Zoom();
 	bool Exit();
 };

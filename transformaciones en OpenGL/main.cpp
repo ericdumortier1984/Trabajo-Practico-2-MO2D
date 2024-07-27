@@ -14,7 +14,9 @@ using namespace std;
 double 
 	shipX = 400, // Posición en x
 	shipY = 300, // Posición en y
-    shipAngle = 0; // Orientación
+    shipAngle = 0, // Orientación nave
+	machineGunAngle = 0, // Orientación arma
+	scale = 2.5; 
 const double PI = 4*atan(1.0); // Es una forma de calcular el valor de PI en código
 const double
 	zBullet = 0.6,
@@ -36,7 +38,8 @@ int
 	mySeconds, // Segundos transcurridos desde que comenzó el programa
 	myMilliseconds;
 bool commandLineinfo = true; // Informa errores por línea de comando
-Keyboard keyboard('p', 'w', 's', 'a', 'd', 'q', 'r');
+bool zoom = false; // Zoom
+Keyboard keyboard('p', 'w', 's', 'a', 'd', 'z', 'r');
 
 //----------------------------------------------------
 
@@ -45,14 +48,14 @@ class Bullet
 private:
 	double x;
 	double y;
-	double incrementox;
-	double incrementoy;
+	double dX;
+	double dY;
 public:
-	Bullet(double posX, double posY, double incX, double incY) : x(posX), y(posY), incrementox(incX), incrementoy(incY) {}
+	Bullet(double posX, double posY, double distanceX, double distanceY) : x(posX), y(posY), dX(distanceX), dY(distanceY) {}
 	bool Update() 
 	{
-		x+=incrementox;
-		y+=incrementoy;
+		x += dX;
+		y += dY;
 		//Si esta fuera de la pantalla, elimino la bala
 		return ( x > w || x < 0 || y > h || y < 0 );
 	}
@@ -218,7 +221,8 @@ void DrawBullet()
 }
 
 // pregunta a OpenGL por el valor de una variable de estado
-int integerv(GLenum pname){
+int integerv(GLenum pname)
+{
 	int value;
 	glGetIntegerv(pname,&value);
 	return value;
@@ -254,6 +258,8 @@ void info()
 	cout << "s: retrocede" << endl;
 	cout << "d: gira en sentido horario" << endl;
 	cout << "a: gira en sentido antihorario" << endl;
+	cout << "p: dispara" << endl;
+	cout << "z: zoom on/off" << endl;
 }
 
 void checkErrors()
@@ -288,7 +294,15 @@ void reshape_cb (int w, int h)
 	glViewport(0,0,w,h);
 	glMatrixMode (GL_PROJECTION);
 	glLoadIdentity ();
+	if(!zoom)
+	{
 	glOrtho(0, w, 0, h, 1, 3);
+	}
+	else
+	{
+	// aplica el zoom con la tecla z
+	glOrtho(0-(w/scale),w+(w/scale),0-(h/scale),h+(h/scale),1,3);
+	}
 	glMatrixMode (GL_MODELVIEW);
 	glLoadIdentity ();
 	gluLookAt(0,0,2, 0,0,0, 0,1,0);// Ubica la camara
@@ -356,8 +370,23 @@ void idle_cb()
     }
 	if(keyboard.Shoot()) // Dispara
 	{
-		ang2=(angle)*PI/180.0;
-		bullet.push_back( Bullet( (shipX), (shipY), -30*sin(ang2), 30*cos(ang2)) );//la bala sale desde la base del arma
+		ang2 = (shipAngle + machineGunAngle)*PI/180.0;
+		bullet.push_back( Bullet( (shipX), (shipY), -30*sin(ang2), 30*cos(ang2)) );//la bala sale desde la trompa de la nave
+	}
+	if(keyboard.Zoom()) // Zoom
+	{
+		zoom =! zoom;
+		if(!zoom)
+		{  
+			cout << "Escala natural: 1:1" << endl;
+		}
+		else 
+		{
+			// aplica el Zoom All con la tecla z
+			cout << "Zoom All" << endl;
+		}
+		// rehace la matriz de proyección (la porcion de espacio visible)
+		reshape_cb(w,h);
 	}
 	
     // controlamos que no salga de la pantalla

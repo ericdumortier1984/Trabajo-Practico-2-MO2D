@@ -72,6 +72,10 @@ bool Keyboard::Right()
 {
 	return keyboard[map[4]];
 }
+bool Keyboard::Zoom()
+{
+	return keyboard[map[5]];
+}
 bool Keyboard::Exit() 
 {
 	return exit;
