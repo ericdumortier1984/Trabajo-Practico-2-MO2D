@@ -3,7 +3,7 @@
 bool Keyboard::keyboard[256];
 bool Keyboard::exit;
 
-Keyboard::Keyboard(unsigned char shoot, unsigned char forward, unsigned char back, unsigned char left, unsigned char right, unsigned char leftAux, unsigned char rightAux)
+Keyboard::Keyboard(unsigned char shoot, unsigned char forward, unsigned char back, unsigned char left, unsigned char right, unsigned char zoom, unsigned char boost)
 {
 	for(int i = 0; i < 256; i++) // Marco todas las teclas como no presionadas
 	{
@@ -15,8 +15,8 @@ Keyboard::Keyboard(unsigned char shoot, unsigned char forward, unsigned char bac
 		map[2] = back;
 		map[3] = left;
 		map[4] = right;
-		map[5] = leftAux;
-		map[6] = rightAux;	
+		map[5] = zoom;
+		map[6] = boost;	
 	}
 }
 
@@ -75,6 +75,10 @@ bool Keyboard::Right()
 bool Keyboard::Zoom()
 {
 	return keyboard[map[5]];
+}
+bool Keyboard::Boost()
+{
+	return keyboard[map[6]];
 }
 bool Keyboard::Exit() 
 {

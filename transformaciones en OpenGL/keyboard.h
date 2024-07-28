@@ -27,5 +27,6 @@ public:
 	bool Left();
 	bool Right();
 	bool Zoom();
+	bool Boost();
 	bool Exit();
 };

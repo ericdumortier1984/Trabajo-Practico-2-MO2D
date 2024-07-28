@@ -25,6 +25,7 @@ const double
 	zLeftWing = 0.5,
 	zRightWing = 0.5,
 	zRadar = 0.9;
+
 static int AngLineRadar = 0; // angulo de rotacion de linea del radar
 int 
 	w = 800,
@@ -36,10 +37,14 @@ int
 	yMin = 0, // Mínimo pantalla en y
 	
 	mySeconds, // Segundos transcurridos desde que comenzó el programa
-	myMilliseconds;
+	myMilliseconds,
+	
+	myMotor = 100;
+
 bool commandLineinfo = true; // Informa errores por línea de comando
 bool zoom = false; // Zoom
-Keyboard keyboard('p', 'w', 's', 'a', 'd', 'z', 'r');
+
+Keyboard keyboard(' ', 'w', 's', 'a', 'd', 'z', 'b');
 
 //----------------------------------------------------
 
@@ -258,8 +263,9 @@ void info()
 	cout << "s: retrocede" << endl;
 	cout << "d: gira en sentido horario" << endl;
 	cout << "a: gira en sentido antihorario" << endl;
-	cout << "p: dispara" << endl;
+	cout << "barra espaciadora: dispara" << endl;
 	cout << "z: zoom on/off" << endl;
+	cout << "b: boost" << endl;
 }
 
 void checkErrors()
@@ -322,7 +328,28 @@ void display_cb()
 	char st2[10] = "";
 	sprintf(st2, "%d", mySeconds); // Corrijo el uso de sprintf
 	strcat(st1, st2); // Concatenar el número de segundos 
-	drawText(st1, 20, 550, 15.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0, 1.0);
+	drawText(st1, 20.0, 550.0, 15.0, 1.0, 1.0, 0.0, 1.0, 0.0, 0, 1.0);
+	
+	char st3[10] = "Motor: ";
+	char st4[10] = "";
+	sprintf(st4, "%d", myMotor);
+	strcat(st3, st4);
+	
+	// Determina el color basado en el valor de myMotor
+	float r = 0.0, g = 0.0, b = 0.0;
+	if (myMotor <= 100 && myMotor >= 51 ) 
+	{
+		g = 1.0; // Verde
+	} else if (myMotor <= 50 && myMotor >= 10) 
+	{
+		r = 1.0; // Amarillo (rojo + verde)
+		g = 1.0;
+	} else if (myMotor <= 10) 
+	{
+		r = 1.0; // Rojo
+	}
+	
+	drawText(st3,20.0, 530.0, 15.0, r, g, b, 1.0, 0.0, 0, 1.0);
 	
 	glutSwapBuffers();
 }
@@ -371,7 +398,7 @@ void idle_cb()
 	if(keyboard.Shoot()) // Dispara
 	{
 		ang2 = (shipAngle + machineGunAngle)*PI/180.0;
-		bullet.push_back( Bullet( (shipX), (shipY), -30*sin(ang2), 30*cos(ang2)) );//la bala sale desde la trompa de la nave
+		bullet.push_back( Bullet( (shipX), (shipY), -50*sin(ang2), 50*cos(ang2)) );//la bala sale desde la trompa de la nave
 	}
 	if(keyboard.Zoom()) // Zoom
 	{
@@ -388,7 +415,15 @@ void idle_cb()
 		// rehace la matriz de proyección (la porcion de espacio visible)
 		reshape_cb(w,h);
 	}
-	
+	if(keyboard.Boost())
+	{
+		if(myMotor > 0)
+		{
+			myMotor -= 1;
+		}
+		shipX -= 10*sin(angle);
+		shipY += 10*cos(angle);
+	}
     // controlamos que no salga de la pantalla
     if(shipX < xmin) shipX = 0;
     if(shipX > xMax) shipX = 800;
@@ -408,6 +443,12 @@ void idle_cb()
 			display_cb();
 			cout << "Termino el tiempo!" << endl;
 			cout << "Pasaron " << mySeconds << " segundos!" <<endl;
+			exit(EXIT_SUCCESS);
+		}
+		if (myMotor == 0)
+		{
+			display_cb();
+			cout << "Rompiste el motor!" << endl;
 			exit(EXIT_SUCCESS);
 		}
 	}
